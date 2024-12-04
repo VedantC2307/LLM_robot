@@ -1,24 +1,3 @@
-// (async function() {
-//     const videoElement = document.getElementById('camera');
-    
-//     try {
-//         // Check if mediaDevices API is available
-//         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-//             throw new Error('getUserMedia API is not supported in this browser. Please use a modern browser like Chrome, Firefox, or Edge.');
-//         }
-        
-//         // Request access to the user's camera
-//         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        
-//         // Set the video element's source to the camera stream
-//         videoElement.srcObject = stream;
-//     } catch (err) {
-//         console.error('Error accessing camera: ', err);
-//         alert('Could not access the camera. ' + err.message + '\nPlease ensure your browser allows camera access and refresh the page.');
-//     }
-// })();
-
-
 (async function() {
     const videoElement = document.getElementById('camera');
     let websocket;
@@ -36,7 +15,7 @@
         videoElement.srcObject = stream;
 
         // Create a WebSocket connection to the server
-        websocket = new WebSocket('wss://192.168.0.55:4000/video-stream');
+        websocket = new WebSocket('wss://192.168.0.204:4000/video-stream');
 
         // Capture video frames and send them to the server
         const canvas = document.createElement('canvas');
@@ -53,7 +32,7 @@
                     console.log('Sent a video frame to the server.');
                 }
             }, 'image/jpeg');
-        }, 100);
+        }, 1000);
 
         websocket.onopen = () => console.log('WebSocket connection established.');
         websocket.onerror = (err) => console.error('WebSocket error: ', err);

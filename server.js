@@ -69,21 +69,16 @@ app.use(errorHandler());
 const server = https.createServer(options, app);
 
 // Create a WebSocket server
-const wss = new WebSocket.Server({ server, path: '/video-stream' });
+const wss = new WebSocket.Server({ server });
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, req) => {
     console.log('WebSocket connection established.');
 
+    let path = req.url.split('/').pop();
+    console.log(path);
+
     ws.on('message', (message) => {
-        // Here we receive the binary data (JPEG frame) from the client
-        console.log('Received video frame');
-        
-        wss.clients.forEach((client) => {
-          if (client !== ws && client.readyState === WebSocket.OPEN) {
-              client.send(message);
-          }
-      });
-        // TODO: Implement the processing of the received video frame
+        handleWSMessage(ws, message, path);
     });
 
     ws.on('close', () => {
@@ -94,6 +89,57 @@ wss.on('connection', (ws) => {
         console.error('WebSocket error: ', err);
     });
 });
+
+
+async function handleWSMessage(ws, message, path) {
+    switch(path) {
+        case "video-stream":
+            handleVideoFrames(ws, message);
+            break;
+
+        case "transcription":
+            handleTranscription(message);
+            break;
+
+        default:
+            break;
+    }
+}
+
+function handleTranscription(message) {
+    let msg = JSON.parse(message);
+    console.log("Prompt Received: ", msg);
+}
+
+async function handleVideoFrames(ws, message) {
+    // Here we receive the binary data (JPEG frame) from the client
+    // const msg = JSON.parse(message);
+    console.log('Received video frame');
+    
+    wss.clients.forEach((client) => {
+        if (client !== ws && client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+    // TODO: Implement the processing of the received video frame
+}
+// // WebSocket server for transcriptions
+// const transcriptionWSS = new WebSocket.Server({ server, path: '/transcription' });
+
+// transcriptionWSS.on('connection', (ws) => {
+//     console.log('Client connected to transcription.');
+
+//     ws.on('message', (message) => {
+//         console.log('Transcription message:', message);
+//         // Handle transcription messages
+//     });
+
+//     ws.on('close', () => {
+//         console.log('Transcription client disconnected.');
+//     });
+// });
+
+
 
 // Start the HTTPS server
 server.listen(port, '0.0.0.0',() => {
