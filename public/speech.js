@@ -29,7 +29,7 @@
                         }
                         finalTranscripts = "";
                         r.innerHTML = finalTranscripts;
-                    }, 1500);
+                    }, 2500);
 
                 }
                 r.innerHTML = finalTranscripts;

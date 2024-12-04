@@ -9,7 +9,9 @@
         }
 
         // Request access to the user's camera
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: "environment" } 
+        });
 
         // Set the video element's source to the camera stream
         videoElement.srcObject = stream;
