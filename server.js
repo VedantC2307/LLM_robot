@@ -1,43 +1,3 @@
-// const https = require('https');
-// const fs = require('fs');
-// const express = require('express');
-// const cors = require('cors');
-// const errorHandler = require('errorhandler');
-// const methodOverride = require("method-override");
-
-// const app = express();
-// const port = 4000; // HTTPS typically runs on port 443
-
-// // Load the SSL certificate and key
-// const options = {
-//   key: fs.readFileSync('key.pem'),
-//   cert: fs.readFileSync('cert.pem'),
-// };
-
-// app.use(cors());
-
-// app.get("/MobileCameraFeed", function (req,res){
-//   res.sendFile(__dirname + '/public/index.html');
-// })
-
-// // New Route to serve the Ubuntu Camera Feed
-// // app.get("/UbuntuCameraFeed", function (req, res) {
-// //   res.sendFile(__dirname + '/public/ubuntu_feed.html');
-// // });
-
-// // app.use(express.static('public'));
-// app.use(express.static('public'));
-
-// app.use(methodOverride());
-// app.use(errorHandler());
-
-// // Create an HTTPS server
-// https.createServer(options, app).listen(port, () => {
-//   console.log(`Server is running over HTTPS on port ${port}/MobileCameraFeed`);
-// });
-
-
-
 const https = require('https');
 const fs = require('fs');
 const express = require('express');
@@ -109,6 +69,7 @@ async function handleWSMessage(ws, message, path) {
 function handleTranscription(message) {
     let msg = JSON.parse(message);
     console.log("Prompt Received: ", msg);
+    // TODO: Implement prompt processing and VLM retrieval
 }
 
 async function handleVideoFrames(ws, message) {
@@ -123,23 +84,6 @@ async function handleVideoFrames(ws, message) {
     });
     // TODO: Implement the processing of the received video frame
 }
-// // WebSocket server for transcriptions
-// const transcriptionWSS = new WebSocket.Server({ server, path: '/transcription' });
-
-// transcriptionWSS.on('connection', (ws) => {
-//     console.log('Client connected to transcription.');
-
-//     ws.on('message', (message) => {
-//         console.log('Transcription message:', message);
-//         // Handle transcription messages
-//     });
-
-//     ws.on('close', () => {
-//         console.log('Transcription client disconnected.');
-//     });
-// });
-
-
 
 // Start the HTTPS server
 server.listen(port, '0.0.0.0',() => {
