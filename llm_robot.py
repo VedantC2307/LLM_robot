@@ -72,7 +72,7 @@ async def processWS():
                 data = await websocket.recv()
                 event = json.loads(data)
                 # print("received data from websocket", event["path"])
-                if (event["path"] == "video-stream" and done_rotating ):
+                if (event["path"] == "video-stream"):
                     print("received video frame")
                     last_saved_frame = event["message"]["dataUrl"]
                 
