@@ -60,6 +60,7 @@ def detect_object_with_gpt(b64_img, prompt):
 found_obj = False
 latest_prompt = None
 get_new_frame = False
+done_rotating = False
 count = -1
 async def processWS():
     global last_saved_frame
@@ -71,10 +72,8 @@ async def processWS():
                 data = await websocket.recv()
                 event = json.loads(data)
                 # print("received data from websocket", event["path"])
-                if (event["path"] == "video-stream"):
-
+                if (event["path"] == "video-stream" and done_rotating ):
                     print("received video frame")
-                    get_new_frame = False
                     last_saved_frame = event["message"]["dataUrl"]
                 
                 if (event["path"] == "transcription"):
@@ -83,6 +82,9 @@ async def processWS():
                     decode_img(last_saved_frame)
                     gpt_response = detect_object_with_gpt(last_saved_frame, latest_prompt)
                     print(gpt_response)
+
+                if (event["path"] == "robot-data"):
+                    print(event["message"])
                 
                 # if not latest_prompt:
                 #     print("Waiting for a command...")
@@ -105,8 +107,7 @@ async def processWS():
                     
                 #     elif command == "ROTATE" and count < 0:
                 #         print(f"Rotating by {rotate_degree} degrees to search for the object.")
-                #         get_new_frame = True
-                #         count = 10
+                #         done_rotating = False
                 #         # Logic to send to ESP32 through ESP-NOW to rotate       
             
             except Exception as e:
