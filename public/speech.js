@@ -7,7 +7,7 @@
         recognizer.lang = "en-US";
         recognizer.start();
         
-        var keyword = "Alexa";
+        var keyword = "robot";
         var finalTranscripts = "";
         var myTimer = undefined;
 
@@ -17,14 +17,20 @@
             for(var i = event.resultIndex; i < event.results.length; i++){
                 var transcript = event.results[i][0].transcript;
                 transcript.replace("\n", "<br>");
-                if(event.results[i].isFinal && (transcript.includes(keyword) || finalTranscripts.includes(keyword))){
+                if(event.results[i].isFinal && (transcript.toLowerCase().includes(keyword) || finalTranscripts.toLowerCase().includes(keyword))){
                     finalTranscripts += transcript;
                     if (myTimer) {
                         clearTimeout(myTimer)
                     }
                     myTimer = setTimeout(() => {
+                        split_arr = finalTranscripts.split(" ");
+                        prompt_arr = null;
+                        key_idx = split_arr.findIndex((word) => word.toLowerCase() == keyword);
+                        prompt_arr = split_arr.splice(key_idx + 1);
+
+                        let prompt = prompt_arr.join(" ");
                         if (websocket.readyState === WebSocket.OPEN) {
-                            websocket.send(JSON.stringify({"transcripts": finalTranscripts}));
+                            websocket.send(JSON.stringify({prompt}));
                             console.log('Sent a transcribed prompt to the server.');
                         }
                         finalTranscripts = "";

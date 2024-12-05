@@ -28,13 +28,14 @@
         // Send video frames every 100ms
         setInterval(() => {
             context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-            canvas.toBlob((blob) => {
-                if (websocket.readyState === WebSocket.OPEN) {
-                    websocket.send(blob);
-                    console.log('Sent a video frame to the server.');
-                }
-            }, 'image/jpeg');
-        }, 1000);
+            
+            const dataUrl = canvas.toDataURL();
+            // console.log(dataUrl);
+            if (websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({dataUrl}));
+                console.log('Sent a video frame to the server.');
+            }
+        }, 500);
 
         websocket.onopen = () => console.log('WebSocket connection established.');
         websocket.onerror = (err) => console.error('WebSocket error: ', err);
