@@ -1,5 +1,6 @@
 import asyncio
 import ssl
+import time
 import websockets
 import json
 from openai import OpenAI
@@ -37,7 +38,7 @@ def detect_object_with_gpt(b64_img, prompt):
                         "If the object is not found in scene 'ROTATE' by 30 degrees. If object is found in the scene move 'FORWARD' "
                         "till the distance to the object is 2.0 cm. Only provide the output in a JSON object with the following information: "
                         "'command' : 'FORWARD' or 'ROTATE', 'rotate_degree': rotation angle if 'command' is 'ROTATE', "
-                        "'object' : object to find, 'in_scene': if object is found in scene then 'True' or else 'False'."
+                        "'object' : object to find, 'in_scene': if object is found in scene then True or else False."
                     ),
                 },
                 {"role": "user", "content": [
@@ -51,14 +52,18 @@ def detect_object_with_gpt(b64_img, prompt):
         )
 
         response_content = response.choices[0].message.content
-        print(response_content)
-        return response_content  # Convert JSON response to Python dictionary
+        return json.loads(response_content)
     except Exception as e:
         print(f"Error during GPT object detection: {e}")
         return None
 
+found_obj = False
+latest_prompt = None
+get_new_frame = False
+count = -1
 async def processWS():
     global last_saved_frame
+    global latest_prompt
     ssl_context = ssl._create_unverified_context()
     async with websockets.connect(WS_URL, ssl=ssl_context) as websocket:
         while True:
@@ -67,15 +72,43 @@ async def processWS():
                 event = json.loads(data)
                 # print("received data from websocket", event["path"])
                 if (event["path"] == "video-stream"):
-                    # print("received video frame")
+
+                    print("received video frame")
+                    get_new_frame = False
                     last_saved_frame = event["message"]["dataUrl"]
                 
                 if (event["path"] == "transcription"):
-                    prompt = event["message"]["prompt"]
-                    print(f"\n\nPrompt Recieved: {prompt}.\nFiring OpenAI API for inference on latest saved frame.\n\n")
+                    latest_prompt = event["message"]["prompt"]
+                    print(f"\n\nPrompt Recieved: {latest_prompt}.\nFiring OpenAI API for inference on latest saved frame.\n\n")
                     decode_img(last_saved_frame)
-                    gpt_response = detect_object_with_gpt(last_saved_frame, prompt)
+                    gpt_response = detect_object_with_gpt(last_saved_frame, latest_prompt)
                     print(gpt_response)
+                
+                # if not latest_prompt:
+                #     print("Waiting for a command...")
+                #     continue
+                
+                # if latest_prompt and not get_new_frame:
+                #     decode_img(last_saved_frame)
+                #     gpt_response = detect_object_with_gpt(last_saved_frame, latest_prompt)
+                #     print(gpt_response)
+                #     command = gpt_response["command"]
+                #     in_scene = gpt_response["in_scene"]
+                #     rotate_degree = gpt_response.get("rotate_degree", 0)
+
+                #     print(f'Prompt: {latest_prompt}')
+                #     if command == "FORWARD" and in_scene:
+                #         # Logic to send to ESP32 through ESP-NOW to stop
+                #         print(f"Found object. Stopping.")
+                #         get_new_frame = False
+                #         latest_prompt = None
+                    
+                #     elif command == "ROTATE" and count < 0:
+                #         print(f"Rotating by {rotate_degree} degrees to search for the object.")
+                #         get_new_frame = True
+                #         count = 10
+                #         # Logic to send to ESP32 through ESP-NOW to rotate       
+            
             except Exception as e:
                 print(e)
                 break
