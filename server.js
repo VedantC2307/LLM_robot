@@ -1,3 +1,6 @@
+const dotenv = require("dotenv");
+dotenv.config();
+
 const https = require('https');
 const fs = require('fs');
 const express = require('express');
@@ -6,8 +9,10 @@ const errorHandler = require('errorhandler');
 const methodOverride = require('method-override');
 const WebSocket = require('ws');
 
+const { SERVER_PORT } = process.env;
+
 const app = express();
-const port = 4000; // HTTPS typically runs on port 443
+const port = SERVER_PORT || 4000; // HTTPS typically runs on port 443
 
 // Load the SSL certificate and key
 const options = {
@@ -52,37 +57,17 @@ wss.on('connection', (ws, req) => {
 
 
 async function handleWSMessage(ws, message, path) {
-    switch(path) {
-        case "video-stream":
-            handleVideoFrames(ws, message);
-            break;
-
-        case "transcription":
-            handleTranscription(message);
-            break;
-
-        default:
-            break;
-    }
-}
-
-function handleTranscription(message) {
-    let msg = JSON.parse(message);
-    console.log("Prompt Received: ", msg);
-    // TODO: Implement prompt processing and VLM retrieval
-}
-
-async function handleVideoFrames(ws, message) {
-    // Here we receive the binary data (JPEG frame) from the client
-    // const msg = JSON.parse(message);
-    console.log('Received video frame');
-    
+    const parsed_data = JSON.parse(message);
+    let msg  = {
+        "message": parsed_data,
+        path
+    };
     wss.clients.forEach((client) => {
         if (client !== ws && client.readyState === WebSocket.OPEN) {
-            client.send(message);
+            client.send(JSON.stringify(msg));
         }
     });
-    // TODO: Implement the processing of the received video frame
+
 }
 
 // Start the HTTPS server

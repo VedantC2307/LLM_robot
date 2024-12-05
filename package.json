@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
     "errorhandler": "^1.5.1",
     "express": "^4.21.0",
     "ffmpeg-static": "^5.2.0",
