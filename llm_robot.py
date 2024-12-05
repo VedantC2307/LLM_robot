@@ -73,7 +73,7 @@ async def processWS():
                 data = await websocket.recv()
                 event = json.loads(data)
                 # print("received data from websocket", event["path"])
-                if (event["path"] == "video-stream" and not rotating):
+                if (event["path"] == "video-stream"):
                     if count >= 0:
                         count -= 1
                     print(f"received video frame, count = {count}")
