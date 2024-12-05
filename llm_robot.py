@@ -2,12 +2,17 @@ import asyncio
 import ssl
 import websockets
 import json
-import openai
+from openai import OpenAI
+import base64
+import cv2
+import numpy as np
+
 
 last_saved_frame = None      
 WS_URL = 'wss://192.168.0.204:4000'
 
-openai.api_key = "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"
+client = OpenAI(api_key = "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")
+# openai.api_key = "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"
 
 def get_distance_to_object():
     return 5.0
@@ -16,39 +21,41 @@ def detect_object_with_gpt(b64_img, prompt):
     """
     Uses GPT-4-turbo to analyze an image and determine if the object is in the scene.
     """
-    print(f"Firing API with prompt: {prompt} and img: {b64_img}")
-    return None
-    # try:
-    #     response = openai.ChatCompletion.create(
-    #         model="gpt-4o-mini",
-    #         messages=[
-    #             {
-    #                 "role": "system",
-    #                 "content": (
-    #                     "You are a computer vision assistant specialized in object detection and localization. "
-    #                     "You are mounted on a 4-wheel mobile robot. Your primary purpose is to decode what the user "
-    #                     "is trying to find and find the specific objects in its environment. "
-    #                     "You can generate the commands 'ROTATE' and 'MOVE_FORWARD' to move the camera to find the object requested. "
-    #                     "If the object is not found in scene 'ROTATE' by 30 degrees. If object is found in the scene move 'FORWARD' "
-    #                     "till the distance to the object is 2.0 cm. Only provide the output in JSON format with the following information: "
-    #                     "'command' : 'FORWARD' or 'ROTATE', 'rotate_degree': rotation angle if 'command' is 'ROTATE', "
-    #                     "'object' : object to find, 'in_scene': if object is found in scene then True or else False."
-    #                 ),
-    #             },
-    #             {"role": "user", "content": {
-    #                 {"type": "text", "text": transcription},
-    #                 {"type": "image_url", "image_url": {
-    #                     "url": b64_img
-    #                 }}
-    #             }}
-    #         ]
-    #     )
+    # print(f"Firing API with prompt: {prompt} and img: {b64_img}")
+    # return None
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a computer vision assistant specialized in object detection and localization. "
+                        "You are mounted on a 4-wheel mobile robot. Your primary purpose is to decode what the user "
+                        "is trying to find and find the specific objects in its environment. "
+                        "You can generate the commands 'ROTATE' and 'MOVE_FORWARD' to move the camera to find the object requested. "
+                        "If the object is not found in scene 'ROTATE' by 30 degrees. If object is found in the scene move 'FORWARD' "
+                        "till the distance to the object is 2.0 cm. Only provide the output in a JSON object with the following information: "
+                        "'command' : 'FORWARD' or 'ROTATE', 'rotate_degree': rotation angle if 'command' is 'ROTATE', "
+                        "'object' : object to find, 'in_scene': if object is found in scene then 'True' or else 'False'."
+                    ),
+                },
+                {"role": "user", "content": [
+                    {"type": "text", "text": prompt + "?"},
+                    {"type": "image_url", "image_url": {
+                        "url": b64_img
+                    }}
+                ]}
+            ],
+            response_format={"type": "json_object"}
+        )
 
-    #     response_content = response['choices'][0]['message']['content']
-    #     return eval(response_content)  # Convert JSON response to Python dictionary
-    # except Exception as e:
-    #     print(f"Error during GPT object detection: {e}")
-    #     return None
+        response_content = response.choices[0].message.content
+        print(response_content)
+        return response_content  # Convert JSON response to Python dictionary
+    except Exception as e:
+        print(f"Error during GPT object detection: {e}")
+        return None
 
 async def processWS():
     global last_saved_frame
@@ -60,17 +67,25 @@ async def processWS():
                 event = json.loads(data)
                 # print("received data from websocket", event["path"])
                 if (event["path"] == "video-stream"):
+                    # print("received video frame")
                     last_saved_frame = event["message"]["dataUrl"]
                 
                 if (event["path"] == "transcription"):
                     prompt = event["message"]["prompt"]
                     print(f"\n\nPrompt Recieved: {prompt}.\nFiring OpenAI API for inference on latest saved frame.\n\n")
+                    decode_img(last_saved_frame)
                     gpt_response = detect_object_with_gpt(last_saved_frame, prompt)
+                    print(gpt_response)
             except Exception as e:
                 print(e)
                 break
 
-
+def decode_img(img_url):
+    img_url = img_url.split(',')[-1]
+    img_buf = base64.b64decode(img_url)
+    nparr = np.frombuffer(img_buf, np.uint8)
+    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    cv2.imwrite("frame.png", frame)
 
 # Run the async function
 asyncio.run(processWS())

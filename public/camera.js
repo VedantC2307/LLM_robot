@@ -35,7 +35,7 @@
                 websocket.send(JSON.stringify({dataUrl}));
                 console.log('Sent a video frame to the server.');
             }
-        }, 500);
+        }, 200);
 
         websocket.onopen = () => console.log('WebSocket connection established.');
         websocket.onerror = (err) => console.error('WebSocket error: ', err);
