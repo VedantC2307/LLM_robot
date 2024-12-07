@@ -90,7 +90,7 @@ for the python script.
 
 - You can now start interacting with the robot. When giving instructions, start with "Robot" as the wake word. For e.g. "Hey *Robot*, can you see my keys?"
 
-## Statemnet Of Need
+## Statement Of Need
 In today’s world, robots are becoming essential for improving efficiency, convenience, and safety across various fields, from industrial automation to personal assistance. However, most mobile robots struggle to dynamically understand and act on natural language instructions, let alone engage in meaningful conversations with users in real-world settings for example Alexa, Google Assistant.
 
 This project focuses on developing a versatile, vision-based autonomous companion robot that uses cutting-edge vision-language models (VLMs) to identify and retrieve objects based on human commands. Here's why this robot is important:
