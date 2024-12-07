@@ -109,4 +109,4 @@ This project bridges the gap between human-robot interaction and affordable robo
 
 ## Demo
 
-[![Watch the demo video](https://drive.google.com/file/d/1CvbKMEWeZ4y7pf6Gphf2pGNyuipiwKnS/view?usp=drive_link.jpg)](https://drive.google.com/file/d/1CvbKMEWeZ4y7pf6Gphf2pGNyuipiwKnS/view?usp=drive_link)
+[!Demo Video](https://drive.google.com/file/d/1CvbKMEWeZ4y7pf6Gphf2pGNyuipiwKnS/view?usp=drive_link)
