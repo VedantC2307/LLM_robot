@@ -85,10 +85,6 @@ async def processWS():
                     decode_img(last_saved_frame)
                     gpt_response = detect_object_with_gpt(last_saved_frame, latest_prompt)
                     print(gpt_response)
-
-                # if (event["path"] == "robot-data"):
-                #     print(event["message"])
-                    # rotating = False
                 
                 if not latest_prompt:
                     print("Waiting for a command...")

@@ -1,7 +1,7 @@
 import RPi.GPIO as GPIO
 import time
 
-# Pin Definitions
+# Pin Definitions for Motor Control
 # Right Front Motor
 MF_PWMA = 13
 MF_AI1 = 6
@@ -45,6 +45,14 @@ pwm_channels = {
 for pwm in pwm_channels.values():
     pwm.start(0)  # Start PWM with 0 duty cycle
 
+
+# Define movement directions in binary
+MEC_STRAIGHT_FORWARD = 0b10101010
+MEC_STRAIGHT_BACKWARD = 0b01010101
+MEC_SIDEWAYS_RIGHT = 0b01101001
+MEC_SIDEWAYS_LEFT = 0b10010110
+
+
 # Motor Control functions
 def move_motors(speedRF, speedLF, speedRR, speedLR, dircontrol):
     # Right Front Motor
@@ -67,47 +75,27 @@ def move_motors(speedRF, speedLF, speedRR, speedLR, dircontrol):
     GPIO.output(MR_BI2, (dircontrol & 0b00000001) > 0)
     pwm_channels["LR"].ChangeDutyCycle(abs(speedLR))
 
+    print("Actuating motors")
+
 def stop_motors():
     for pwm in pwm_channels.values():
         pwm.ChangeDutyCycle(0)
     for pin in motor_pins:
         GPIO.output(pin, 0)
 
-# Define movement directions in binary
-MEC_STRAIGHT_FORWARD = 0b10101010
-MEC_STRAIGHT_BACKWARD = 0b01010101
-MEC_SIDEWAYS_RIGHT = 0b01101001
-MEC_SIDEWAYS_LEFT = 0b10010110
+
 
 # Code to test Movement
-try:
-    while True:
-        print("Straight Forward")
-        move_motors(50, 50, 50, 50, MEC_STRAIGHT_FORWARD)
-        time.sleep(1)
-        stop_motors()
-        time.sleep(5)
+# try:
+#     while True:
+#         print("Straight Forward")
+#         move_motors(50, 50, 50, 50, MEC_STRAIGHT_FORWARD)
+#         time.sleep(1)
+#         stop_motors()
+#         time.sleep(5)
 
-        # print("Straight Backward")
-        # move_motors(50, 50, 50, 50, MEC_STRAIGHT_BACKWARD)
-        # time.sleep(1)
-        # stop_motors()
-        # time.sleep(0.5)
-
-        # print("Sideways Right")
-        # move_motors(50, 50, 50, 50, MEC_SIDEWAYS_RIGHT)
-        # time.sleep(1)
-        # stop_motors()
-        # time.sleep(0.5)
-
-        # print("Sideways Left")
-        # move_motors(50, 50, 50, 50, MEC_SIDEWAYS_LEFT)
-        # time.sleep(1)
-        # stop_motors()
-        # time.sleep(0.5)
-
-except KeyboardInterrupt:
-    print("Exiting...")
-finally:
-    stop_motors()
-    GPIO.cleanup()
+# except KeyboardInterrupt:
+#     print("Exiting...")
+# finally:
+#     stop_motors()
+#     GPIO.cleanup()
