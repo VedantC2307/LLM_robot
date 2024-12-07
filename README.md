@@ -15,9 +15,30 @@ The aim of this project is to create a small robot that can navigate around a  d
 [Vedant Choudhary](https://github.com/VedantC2307)
 
 ## Overview
-The robot can listen to commands, view its surroundings and navigate as required. For the purpose of this project, an Android phone is used as the camera and microphone. The camera and microphone are accessed via web browser, where the commands are transcribed using the `webkitSpeechRecognition` API. It is connected to the RaspberryPi using Websockets. The RaspberryPi contains a server that is used for the Websocket communication. The recieved command and video feed are forwarded to a Python script. The script calls the OpenAI API for the `gpt-4o-mini` model using the transcribed prompt and image feed. The GPT model acts as an assistant and has been given clear instructions on how to respond. The GPT response is then used to maneuver the robot.
+The robot can listen to commands, view its surroundings and navigate as required. For the purpose of this project, an Android phone is used as the camera and microphone. 
 
-![Block Diagram](assets/Block_diagram.png)
+### Software
+<p align="center">
+    <img src="assets/Block_diagram.png" width="500"/>
+</p>
+
+- The camera and microphone are accessed via web browser, where the commands are transcribed using the `webkitSpeechRecognition` API. It is connected to the RaspberryPi using Websockets. 
+ 
+- The RaspberryPi contains a server that is used for the Websocket communication. The recieved command and video feed are forwarded to a Python script. The script calls the OpenAI API for the `gpt-4o-mini` model using the transcribed prompt and image feed. 
+
+- The GPT model acts as an assistant and has been given clear instructions on how to respond. The GPT response is then used to maneuver the robot.
+
+### Hardware
+<p align="center">
+<img src="assets/robot.jpg" width="250"/>
+</p>
+  
+- The hardware of the robot consists of wheels, chasis, motors, motor drivers, ultrasonic sensors, RaspberryPi, and batteries.
+
+- The 3D printed chasis has been designed to support the weight of the phone and all other components. The Omnidirectional wheels make it easier for the robot to navigate the environment with minimal body rotations. 
+
+- There are two motor drivers ([LB298N](https://www.makerfabs.com/l298n-motor-driver-board.html)), each supporting one set of motors. The RaspberryPi connects to the drivers and sends the necessary instructions for navigation. The Ultrasonic sensor is interfaced directly with the RaspberryPi for distance calculations, and possible obstacle detection and avoidance.
+
 
 ## Installation Instructions
 
@@ -61,8 +82,9 @@ for the webserver, and like:
 for the python script.
 - This should have the main server up and running. On the smartphone, navigate to the ip address you noted before.
 ` https://<your_ip>:4000/MobileCameraFeed`. You should see your mobile camera feed on the screen.
-
+<p align="center">
 <img src="assets/phone_screen.png" width="250"/>
+</p>
 
 - You can now start interacting with the robot. When giving instructions, start with "Robot" as the wake word. For e.g. "Hey *Robot*, can you see my keys?"
 
