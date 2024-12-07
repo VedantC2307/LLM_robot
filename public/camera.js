@@ -17,7 +17,7 @@
         videoElement.srcObject = stream;
 
         // Create a WebSocket connection to the server
-        websocket = new WebSocket('wss://192.168.0.204:4000/video-stream');
+        websocket = new WebSocket('wss://192.168.0.133:4000/video-stream');
 
         // Capture video frames and send them to the server
         const canvas = document.createElement('canvas');

@@ -10,7 +10,7 @@ import numpy as np
 
 
 last_saved_frame = None      
-WS_URL = 'wss://192.168.0.204:4000'
+WS_URL = 'wss://192.168.0.133:4000'
 
 client = OpenAI(api_key = "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")
 # openai.api_key = "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"

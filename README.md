@@ -33,7 +33,7 @@ The robot can listen to commands, view its surroundings and navigate as required
 <img src="assets/robot.jpg" width="250"/>
 </p>
   
-- The hardware of the robot consists of wheels, chasis, motors, motor drivers, ultrasonic sensors, RaspberryPi, and batteries.
+- The hardware of the robot consists of 4 Mecanum wheels, chasis, DC motors, motor drivers, ultrasonic sensors, RaspberryPi, and batteries.
 
 - The 3D printed chasis has been designed to support the weight of the phone and all other components. The Omnidirectional wheels make it easier for the robot to navigate the environment with minimal body rotations. 
 
@@ -88,3 +88,19 @@ for the python script.
 
 - You can now start interacting with the robot. When giving instructions, start with "Robot" as the wake word. For e.g. "Hey *Robot*, can you see my keys?"
 
+## Statemnet Of Need
+In today’s world, robots are becoming essential for improving efficiency, convenience, and safety across various fields, from industrial automation to personal assistance. However, most mobile robots struggle to dynamically understand and act on natural language instructions, let alone engage in meaningful conversations with users in real-world settings for example Alexa, Google Assistant.
+
+This project focuses on developing a versatile, vision-based autonomous companion robot that uses cutting-edge vision-language models (VLMs) to identify and retrieve objects based on human commands. Here's why this robot is important:
+
+- Human-Robot Interaction (HRI):
+Current robots rely on rigid, predefined commands, making them less accessible, especially for non-technical users. This project aims to create a robot that interacts naturally and safely, enabling both kids and adults to enjoy intuitive, engaging, and fun interactions. The robot not only makes the experience interactive but also has the ability to remember and locate objects in its environment.
+
+- Autonomous Decision-Making:
+Unlike traditional robots with fixed behaviors, this robot uses VLMs to understand user intent and respond to its surroundings, enabling real-time decision-making. This enhances its autonomy, adaptability, and versatility in dynamic environments while also basic abilities like obstacle detection.
+
+- Affordable and Scalable Platform:
+Advanced robots are often expensive and complicated. This project offers an affordable, DIY alternative using open-source software and accessible hardware, making it suitable for research, education, and practical everyday use. The robot has endless potential for expand and equip with diverse capabilities to perform a wide range of tasks.
+
+
+This project bridges the gap between human-robot interaction and affordable robotics, opening new possibilities for personal and practical applications.

@@ -11,7 +11,7 @@
         var finalTranscripts = "";
         var myTimer = undefined;
 
-        let websocket = new WebSocket('wss://192.168.0.204:4000/transcription');
+        let websocket = new WebSocket('wss://192.168.0.133:4000/transcription');
 
         recognizer.onresult = function(event){
             for(var i = event.resultIndex; i < event.results.length; i++){
