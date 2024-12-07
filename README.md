@@ -1,5 +1,7 @@
 # AME598: Final Project - Desk Companion Bot
 
+![Main_bot](assets/final_bot.jpg)
+
 ### Table of Contents
 1. [Project Description](#project-description)
 2. [Group Members](#group-members)
@@ -69,7 +71,7 @@ pip install -e requirements.txt
 > The `speech.js` script listens for the microphone instructions, transcribes the speech, and sends the text over the websocket path : `/transcription`.  
 > The webserver (`server.js`) listens to these paths and passes the info to other clients (`llm_robot.py`).
 
-- Start the node server and the python script by running the bash script: `./start_system`. Alternatively, you can run the two separately. *Make sure to activate the virtual environment beforehand*.
+- Start the node server and the python script by running the two commands separately. *Make sure to activate the virtual environment beforehand*.
 ```
 node server.js
 python3 llm_robot.py
@@ -87,4 +89,9 @@ for the python script.
 </p>
 
 - You can now start interacting with the robot. When giving instructions, start with "Robot" as the wake word. For e.g. "Hey *Robot*, can you see my keys?"
+
+## Statement of Need
+
+
+## Demo
 
