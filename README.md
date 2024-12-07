@@ -108,3 +108,5 @@ Advanced robots are often expensive and complicated. This project offers an affo
 This project bridges the gap between human-robot interaction and affordable robotics, opening new possibilities for personal and practical applications.
 
 ## Demo
+
+[Watch the demo video](https://drive.google.com/file/d/1CvbKMEWeZ4y7pf6Gphf2pGNyuipiwKnS/view?usp=drive_link)
