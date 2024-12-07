@@ -1,12 +1,18 @@
 # AME598: Final Project - Desk Companion Bot
 
+### Table of Contents
+1. [Project Description](#project-description)
+2. [Group Members](#group-members)
+3. [Overview](#overview)
+4. [Installation Instructions](#installation-instructions)
+5. [Usage Instructions](#usage-instructions)
 
 ## Project Description
 The aim of this project is to create a small robot that can navigate around a  desk or a room and act as a companion. The robot is equiped with camera, microphone, and ultrasonic sensors that are interfaced with onmidirectional (mecanum) wheels through a RaspberryPi.
 
 ## Group Members
 [Shantanu Patne](https://github.com/sapatne)  
-[Vedant Choudhary]()
+[Vedant Choudhary](https://github.com/VedantC2307)
 
 ## Overview
 The robot can listen to commands, view its surroundings and navigate as required. For the purpose of this project, an Android phone is used as the camera and microphone. The camera and microphone are accessed via web browser, where the commands are transcribed using the `webkitSpeechRecognition` API. It is connected to the RaspberryPi using Websockets. The RaspberryPi contains a server that is used for the Websocket communication. The recieved command and video feed are forwarded to a Python script. The script calls the OpenAI API for the `gpt-4o-mini` model using the transcribed prompt and image feed. The GPT model acts as an assistant and has been given clear instructions on how to respond. The GPT response is then used to maneuver the robot.
