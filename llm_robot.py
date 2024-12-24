@@ -7,13 +7,14 @@ from openai import OpenAI
 import base64
 import cv2
 import numpy as np
+from robot_controller.robot_control_motor import move_motors, stop_motors
+import RPi.GPIO as GPIO
 
 
 last_saved_frame = None      
 WS_URL = 'wss://192.168.0.133:4000'
 
-client = OpenAI(api_key = "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")
-# openai.api_key = "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"
+client = OpenAI(api_key = "")
 
 def get_distance_to_object():
     return 5.0
@@ -38,7 +39,8 @@ def detect_object_with_gpt(b64_img, prompt):
                         "If the object is not found in scene 'ROTATE' by 30 degrees. If object is found in the scene move 'FORWARD' "
                         "till the distance to the object is 2.0 cm. Only provide the output in a JSON object with the following information: "
                         "'command' : 'FORWARD' or 'ROTATE', 'rotate_degree': rotation angle if 'command' is 'ROTATE', "
-                        "'object' : object to find, 'in_scene': if object is found in scene then True or else False."
+                        "'object' : object to find, 'in_scene': if object is found in scene then True or else False.,"
+                        "'description': A small description of what you see in the image and the next steps your are going to take as a robot.,"
                     ),
                 },
                 {"role": "user", "content": [
@@ -61,11 +63,22 @@ found_obj = False
 latest_prompt = None
 # rotating = False
 count = -1
+
+MEC_STRAIGHT_FORWARD = 0b10101010
+MEC_STRAIGHT_BACKWARD = 0b01010101
+MEC_SIDEWAYS_RIGHT = 0b01101001
+MEC_SIDEWAYS_LEFT = 0b10010110
+MEC_ROTATE_CLOCKWISE = 0b01100110
+MEC_ROTATE_COUNTERCLOCKWISE = 0b10011001
+
+
 async def processWS():
     global last_saved_frame
     global latest_prompt
     # global rotating
     global count
+    motor_action_complete = False
+
     ssl_context = ssl._create_unverified_context()
     async with websockets.connect(WS_URL, ssl=ssl_context) as websocket:
         while True:
@@ -94,12 +107,32 @@ async def processWS():
                     decode_img(last_saved_frame)
                     gpt_response = detect_object_with_gpt(last_saved_frame, latest_prompt)
                     print(gpt_response)
-                    command = gpt_response["command"]
-                    in_scene = gpt_response["in_scene"]
+                    if not gpt_response:
+                        print("No valid response from GPT. Skipping...")
+                        continue
+
+                    # command = gpt_response["command"]
+                    # in_scene = gpt_response["in_scene"]
+                    # rotate_degree = gpt_response.get("rotate_degree", 0)
+                    # description = gpt_response["description"]
+
+                    command = gpt_response.get("command", None)
+                    in_scene = gpt_response.get("in_scene", False)
                     rotate_degree = gpt_response.get("rotate_degree", 0)
+                    description = gpt_response.get("description", "")
+
+                    if command is None:
+                        print("No command in GPT response. Not moving.")
+                        continue
 
                     print(f'Prompt: {latest_prompt}')
                     if command == "FORWARD" and in_scene:
+                        print("Staright Forward")
+                        move_motors(0, 0, 100, 100, MEC_STRAIGHT_FORWARD)
+                        time.sleep(1)
+                        stop_motors()
+                        time.sleep(5)
+                        # motor_action_complete = True
                         # Logic to send to ESP32 through ESP-NOW to stop
                         print(f"Found object. Stopping.")
                         count = -1
@@ -108,6 +141,12 @@ async def processWS():
                     
                     elif command == "ROTATE":
                         print(f"Rotating by {rotate_degree} degrees to search for the object.")
+                        print("Rotating")
+                        move_motors(0, 0, 100, 100, MEC_ROTATE_CLOCKWISE)
+                        time.sleep(1.5)
+                        stop_motors()
+                        time.sleep(5)
+                        # motor_action_complete = True
                         # rotating = True
                         count = 2 # wait for 3 frames before checking to allow for rotation delay
                         # Logic to send to ESP32 through ESP-NOW to rotate       

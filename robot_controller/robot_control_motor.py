@@ -51,6 +51,8 @@ MEC_STRAIGHT_FORWARD = 0b10101010
 MEC_STRAIGHT_BACKWARD = 0b01010101
 MEC_SIDEWAYS_RIGHT = 0b01101001
 MEC_SIDEWAYS_LEFT = 0b10010110
+MEC_ROTATE_CLOCKWISE = 0b01100110
+MEC_ROTATE_COUNTERCLOCKWISE = 0b10011001
 
 
 # Motor Control functions
@@ -84,13 +86,12 @@ def stop_motors():
         GPIO.output(pin, 0)
 
 
-
 # Code to test Movement
 # try:
 #     while True:
 #         print("Straight Forward")
-#         move_motors(50, 50, 50, 50, MEC_STRAIGHT_FORWARD)
-#         time.sleep(1)
+#         move_motors(0, 0, 100, 100, MEC_ROTATE_CLOCKWISE)
+#         time.sleep(2)
 #         stop_motors()
 #         time.sleep(5)
 
