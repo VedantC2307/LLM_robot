@@ -1,3 +1,0 @@
-websockets
-openai
-opencv-python
