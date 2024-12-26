@@ -1,24 +1,37 @@
-# Import the move_motors function from robot_control_motor.py
-from robot_controller.robot_control_motor import move_motors, stop_motors
-import time
+import asyncio
+import ssl
+import websockets
+import json
 
+async def connect_to_server():
+    WS_URL = "wss://localhost:4000"
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
 
-# Define movement directions in binary
-MEC_STRAIGHT_FORWARD = 0b10101010
-MEC_STRAIGHT_BACKWARD = 0b01010101
-MEC_SIDEWAYS_RIGHT = 0b01101001
-MEC_SIDEWAYS_LEFT = 0b10010110
+    async with websockets.connect(WS_URL, ssl=ssl_context) as websocket:
+        print("Connected to WebSocket server.")
 
-def main():
-    # Example usage of move_motors
-    # Code to test Movement
-    while True:
-        print("Straight Forward")
-        move_motors(50, 50, 50, 50, MEC_STRAIGHT_FORWARD)
-        time.sleep(1)
-        stop_motors()
-        time.sleep(5)
+        try:
+            async for message in websocket:
+                try:
+                    # Parse the received JSON message
+                    data = json.loads(message)
 
+                    # Check if the "path" field exists and filter messages
+                    if "path" in data:
+                        if data["path"] == "webxlr-pos":  # Process only messages with this path, webxlr-pos, video-stream
+                            print("Filtered message:", json.dumps(data, indent=4))
+                        else:
+                            print("Skipping message with path:", data["path"])
+                    else:
+                        print("Received message without path:", data)
+
+                except json.JSONDecodeError:
+                    print("Received non-JSON message:", message)
+
+        except websockets.ConnectionClosed as e:
+            print(f"Connection closed: {e}")
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(connect_to_server())
