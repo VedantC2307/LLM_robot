@@ -3,4 +3,5 @@ websockets>=10.0
 openai>=0.27.0
 opencv-python>=4.5.5
 numpy>=1.21.6
+hello
 RPi.GPIO>=0.7.0
