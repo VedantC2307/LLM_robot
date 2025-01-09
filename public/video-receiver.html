@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Video Receiver</title>
+</head>
+<body>
+  <h1>Video Receiver</h1>
+
+  <!-- Container for the last received frame -->
+  <img id="videoFrame" style="width: 320px; height: 240px;" />
+
+  <script>
+    // Connect to the same /video-stream endpoint
+    // NOTE: Use 'wss://' and the correct hostname/port
+    // If you’re running on localhost:4000, then:
+    //   wss://localhost:4000/video-stream
+    const wsUrl = `wss://${location.hostname}:${location.port}/video-stream`;
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      console.log('Connected to /video-stream WebSocket');
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.path === 'video-stream' && data.message) {
+          // data.message should be the dataUrl from the sender
+          document.getElementById('videoFrame').src = data.message;
+        }
+      } catch (e) {
+        console.error('Error parsing message:', e);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket closed.');
+    };
+  </script>
+</body>
+</html>

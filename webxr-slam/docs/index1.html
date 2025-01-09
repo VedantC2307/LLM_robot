@@ -66,8 +66,6 @@
 
     // WebGL scene globals.
     let gl = null;
-    let glBinding = null;
-    let websocket = null;
 
     function checkSupportedState() {
       navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
@@ -183,11 +181,9 @@
 
       renderer.render(scene, camera);
     }
-    
     function onButtonClicked() {
       if (!xrSession) {
         navigator.xr.requestSession('immersive-ar', {
-          requiredFeatures: ['camera-access'],
           optionalFeatures: ['dom-overlay'],
           domOverlay: { root: document.getElementById('overlay') }
         }).then(onSessionStarted, onRequestSessionError);
@@ -214,11 +210,6 @@
         xrCompatible: true
       });
       session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
-
-      glBinding = new XRWebGLBinding(session, gl);
-
-      initializeWebSocket();
-
       session.requestReferenceSpace('local').then((refSpace) => {
         xrRefSpace = refSpace;
         session.requestAnimationFrame(onXRFrame);
@@ -237,36 +228,8 @@
     function onSessionEnded(event) {
       xrSession = null;
       xrButton.innerHTML = 'Start';
-      if (websocket) websocket.close();
       gl = null;
       window.location.reload();
-    }
-
-    function initializeWebSocket() {
-      websocket = new WebSocket('wss://192.168.0.133:4000/video-stream');
-      websocket.onopen = () => console.log('WebSocket connected.');
-      websocket.onerror = (err) => console.error('WebSocket error:', err);
-      websocket.onclose = () => console.log('WebSocket closed.');
-    }
-
-    function sendCameraImage(cameraTexture) {
-      const framebuffer = gl.createFramebuffer();
-      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, cameraTexture, 0);
-
-      const width = gl.drawingBufferWidth;
-      const height = gl.drawingBufferHeight;
-      const pixels = new Uint8Array(width * height * 4); // RGBA format
-      gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-
-      if (websocket && websocket.readyState === WebSocket.OPEN) {
-        const base64Frame = btoa(String.fromCharCode(...pixels));
-        websocket.send(base64Frame);
-        console.log('Sent a video frame to the server.');
-      }
-
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.deleteFramebuffer(framebuffer);
     }
 
     var framen = 0;

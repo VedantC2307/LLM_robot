@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -15,5 +15,105 @@
         <p id="result"></p>
     </div>
     <script src="speech.js"></script>
+</body>
+</html> -->
+
+
+<!-- public/index.html -->
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Remote Video Viewer</title>
+</head>
+<body>
+  <h1>Viewing the Shared Camera Feed</h1>
+
+  
+  <img id="remoteFeed" width="640" height="480" />
+
+  <script>
+    // Connect to the same /video-stream path
+    const socket = new WebSocket('wss://' + location.hostname + ':' + location.port + '/video-stream');
+
+    socket.onopen = () => {
+      console.log('WebSocket connected to /video-stream for viewing');
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        // We only care about messages with path: 'video-stream'
+        if (data.path === 'video-stream' && data.message) {
+          // data.message is the dataUrl
+          document.getElementById('remoteFeed').src = data.message;
+        }
+      } catch (err) {
+        console.error("Failed to parse incoming WS message", err);
+      }
+    };
+
+    socket.onclose = () => {
+      console.log('WebSocket disconnected');
+    };
+
+    socket.onerror = (err) => {
+      console.error('WebSocket error:', err);
+    };
+  </script>
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Remote Video Viewer</title>
+</head>
+<body>
+  <h1>Viewing the Shared Camera Feed</h1>
+  <canvas id="remoteCanvas" width="640" height="480" style="border: 1px solid black;"></canvas>
+
+  <script>
+    const socket = new WebSocket('wss://' + location.hostname + ':' + location.port + '/video-stream');
+    const canvas = document.getElementById('remoteCanvas');
+    const ctx = canvas.getContext('2d');
+
+    socket.onopen = () => {
+      console.log('WebSocket connected to /video-stream');
+    };
+
+    socket.onmessage = (event) => {
+      console.log("Raw WebSocket message:", event.data);
+      try {
+        // Parse the incoming JSON data
+        const data = JSON.parse(event.data);
+
+        // Ensure the expected field containing Base64 data is present
+        if (data && data.base64Image) {
+          const base64Data = data.base64Image; // Replace this with the actual key for Base64 data
+          const image = new Image();
+          image.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height); // Draw the new frame
+          };
+          image.src = `data:image/png;base64,${base64Data}`;
+        } else {
+          console.error('No Base64 image data found in the message:', event.data);
+        }
+      } catch (err) {
+        console.error("Error handling WebSocket message:", err);
+      }
+    };
+
+
+    socket.onclose = () => {
+      console.log('WebSocket disconnected');
+    };
+
+    socket.onerror = (err) => {
+      console.error('WebSocket error:', err);
+    };
+  </script>
 </body>
 </html>

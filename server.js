@@ -9,7 +9,7 @@ const errorHandler = require('errorhandler');
 const methodOverride = require('method-override');
 const WebSocket = require('ws');
 const bodyParser = require('body-parser'); // Middleware for parsing JSON
-const { path } = require("express/lib/application");
+// const { path } = require("express/lib/application");
 
 const { SERVER_PORT } = process.env;
 
@@ -24,6 +24,9 @@ const options = {
 
 app.use(cors());
 app.use(bodyParser.json()); // Middleware for parsing JSON bodies
+app.use(express.static('public'));
+app.use(methodOverride());
+app.use(errorHandler());
 
 // Define a new route to handle JSON data from `index.js`
 app.post('/webxlr-json', (req, res) => {
@@ -38,10 +41,6 @@ app.post('/webxlr-json', (req, res) => {
 app.get("/MobileCameraFeed", function (req, res) {
     res.sendFile(__dirname + '/public/index.html');
 });
-
-app.use(express.static('public'));
-app.use(methodOverride());
-app.use(errorHandler());
 
 // Create an HTTPS server
 const server = https.createServer(options, app);
@@ -98,6 +97,6 @@ async function handleWSMessage(ws, message, path) {
 
 // Start the HTTPS server
 server.listen(port, '0.0.0.0', () => {
-    console.log(`Server is running over HTTPS on port ${port}/MobileCameraFeed`);
+    console.log(`Server is running over HTTPS on port 192.168.0.133:${port}/MobileCameraFeed`);
 });
 

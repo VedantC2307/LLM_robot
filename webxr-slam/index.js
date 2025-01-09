@@ -11,8 +11,8 @@ const path = require('path');
 
 // Load SSL certificate and private key
 const options = {
-    key: fs.readFileSync(path.join(__dirname, '../key.pem')), // Replace with your private key file path
-    cert: fs.readFileSync(path.join(__dirname, '../cert.pem')), // Replace with your certificate file path
+    key: fs.readFileSync(path.join(__dirname, '../key.pem')),
+    cert: fs.readFileSync(path.join(__dirname, '../cert.pem')), 
 };
 
 function sendJsonToReceiver(jsonData) {
@@ -73,6 +73,8 @@ const WebSocket = require('ws');
 const wss1 = new WebSocket.Server({ noServer: true });
 const wss2 = new WebSocket.Server({ noServer: true });
 
+const wssVideo = new WebSocket.Server({ noServer: true }); //1
+
 // const intWS = new WebSocket('wss://localhost:' + port + '/xr-slam-server');
 
 const intWS = new WebSocket(`wss://localhost:${port}/xr-slam-server`, {
@@ -104,6 +106,24 @@ wss2.on('connection', function connection(ws) {
     });
 });
 
+// wssVideo => the new video-stream websocket
+wssVideo.on('connection', function (ws) {
+    console.log('New WebSocket connection on /video-stream');
+    ws.on('message', function (message) {
+        // Typically your client is sending JSON with { dataUrl: '...' }
+        // For a quick test, just log it:
+        // console.log('Video frame received from client:', message.toString().slice(0,100), '...');
+
+        // If you want to broadcast the frames to all connected video clients:
+        wssVideo.clients.forEach(function each(client) {
+            if (client !== ws && client.readyState === WebSocket.OPEN) {
+                client.send(message);
+            }
+        });
+    });
+});
+
+
 server.on('upgrade', function upgrade(request, socket, head) {
     const pathname = url.parse(request.url).pathname;
 
@@ -115,19 +135,23 @@ server.on('upgrade', function upgrade(request, socket, head) {
         wss2.handleUpgrade(request, socket, head, function done(ws) {
             wss2.emit('connection', ws, request);
         });
+    } else if (pathname === '/video-stream') {
+        // ADD THIS BLOCK to handle the camera’s video-stream route
+        wssVideo.handleUpgrade(request, socket, head, function done(ws) {
+            wssVideo.emit('connection', ws, request);
+        });
     } else {
         socket.destroy();
     }
 });
 
 app.get("/", function (req, res) {
-    res.sendFile(__dirname + '/docs/index.html');
+    res.sendFile(__dirname + '/docs/index1.html');
 });
 
 app.get("/test", function (req, res) {
     res.sendFile(__dirname + '/docs/test.html');
 });
-
 
 app.get("/numberofclients", function (req, res) {
     var numberofclient = wss2.clients.size;
