@@ -97,6 +97,6 @@ async function handleWSMessage(ws, message, path) {
 
 // Start the HTTPS server
 server.listen(port, '0.0.0.0', () => {
-    console.log(`Server is running over HTTPS on port 192.168.0.133:${port}/MobileCameraFeed`);
+    console.log(`Server is running over HTTPS on port 192.168.0.214:${port}/MobileCameraFeed`);
 });
 
