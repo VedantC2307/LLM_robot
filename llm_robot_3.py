@@ -10,7 +10,8 @@ import numpy as np
 import os
 
     
-WS_URL = 'wss://192.168.0.214:8888/video'
+WS_URL = 'wss://192.168.0.214:4000'
+VIDEO_URL = 'wss://192.168.0.214:8888/video'
 MOTOR_WS_URL = 'ws://192.168.0.214:5000'  # Motor control WebSocket
 
 client = OpenAI(api_key = "")
@@ -19,7 +20,7 @@ last_saved_frame = None
 latest_prompt = None
 
 def get_distance_to_object():
-    return 5.0
+    return 2.0
 
 
 def detect_object_with_gpt(b64_img, prompt):
@@ -87,14 +88,14 @@ async def processWS():
                 if (event["path"] == "transcription"):
                     latest_prompt = event["message"]["prompt"]
                     print(f"\n\nPrompt Recieved: {latest_prompt}.\nFiring OpenAI API for inference on latest saved frame.\n\n")
-                    last_saved_frame = capture_frame()
-                    gpt_response = detect_object_with_gpt(last_saved_frame, latest_prompt)
+                    base64_saved_frame = capture_frame()
+                    gpt_response = detect_object_with_gpt(base64_saved_frame, latest_prompt)
                     print(gpt_response)
 
                     if gpt_response:
-                            motor_command = parse_gpt_response(gpt_response)
-                            if motor_command:
-                                await send_motor_command(motor_command)
+                        motor_command = parse_gpt_response(gpt_response)
+                        if motor_command:
+                            await send_motor_command(motor_command)
 
                 if not latest_prompt:
                     print("Waiting for a command...")
@@ -103,9 +104,51 @@ async def processWS():
                 print(e)
                 break
 
+async def get_video_stream():
+    """
+    Connects to the video WebSocket and listens for video frames.
+    Frames are stored globally to be processed by other functions.
+    """
+    global last_saved_frame
+    ssl_context = ssl._create_unverified_context()
+
+    async with websockets.connect(VIDEO_URL, ssl=ssl_context) as video_ws:
+        print("Connected to video stream WebSocket.")
+        while True:
+            try:
+                # Receive binary video frame
+                frame_data = await video_ws.recv()
+                if isinstance(frame_data, bytes):
+                    # Decode the binary data into an image
+                    np_arr = np.frombuffer(frame_data, np.uint8)
+                    image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+                    last_saved_frame = image
+            except Exception as e:
+                print(f"Error receiving video frame: {e}")
+                break
+
+
 def capture_frame():
+    """
+    Captures the latest frame from the video stream and saves it to disk.
+    Returns the base64-encoded image string for GPT processing.
+    """
+    global last_saved_frame
 
+    if last_saved_frame is None:
+        print("No frame available yet.")
+        return None
 
+    # Save the frame to disk
+    frame_filename = f"captured_images/frame.jpg"
+    cv2.imwrite(frame_filename, last_saved_frame)
+    print(f"Frame saved to {frame_filename}")
+
+    # Convert the frame to a base64-encoded string
+    _, buffer = cv2.imencode(".jpg", last_saved_frame)
+    b64_image = base64.b64encode(buffer).decode("utf-8")
+
+    return b64_image
 
 def parse_gpt_response(gpt_response):
     """
@@ -137,9 +180,8 @@ def parse_gpt_response(gpt_response):
 
 # Run the async functions and image capture concurrently
 async def main():
-    capture_task = asyncio.to_thread(capture_images)
-    websocket_task = processWS()
+    capture_task = asyncio.create_task(get_video_stream())  # Continuously receive video frames
+    websocket_task = processWS()  # Process WebSocket commands
     await asyncio.gather(capture_task, websocket_task)
-
 
 asyncio.run(main())

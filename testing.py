@@ -1,65 +1,45 @@
-import cv2
-import time
+import asyncio
+import websockets
+import ssl
 import os
 from datetime import datetime
 
-def capture_images(device_id=0, interval=2, save_dir="captured_images"):
+async def save_camera_frames():
     """
-    Continuously capture images from camera at specified intervals
-    
-    Args:
-        device_id (int): Camera device ID (0 or 1)
-        interval (int): Time between captures in seconds
-        save_dir (str): Directory to save images
+    Connects to a WebSocket server at /video, listens for binary image data,
+    and saves the frames to disk every 1 second.
     """
-    # Create save directory if it doesn't exist
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-        print(f"Created directory: {save_dir}")
+    WS_URL = "wss://192.168.0.214:8888/video"
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
 
-    # Initialize camera
-    cap = cv2.VideoCapture(device_id)
-    
-    if not cap.isOpened():
-        raise RuntimeError(f"Failed to open camera {device_id}")
-    
-    print(f"Started capturing from camera {device_id}")
-    print(f"Saving images every {interval} seconds to {save_dir}")
-    print("Press Ctrl+C to stop capturing")
-    
-    try:
-        while True:
-            # Capture frame
-            ret, frame = cap.read()
-            
-            if ret:
-                # Generate filename with timestamp
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"capture_{timestamp}.jpg"
-                filepath = os.path.join(save_dir, filename)
-                
-                # Save image
-                cv2.imwrite(filepath, frame)
-                print(f"Saved: {filepath}")
-                
-                # Wait for interval
-                time.sleep(interval)
+    # Ensure the output directory exists
+    output_dir = "saved_frames"
+    os.makedirs(output_dir, exist_ok=True)
+
+    async with websockets.connect(WS_URL, ssl=ssl_context) as websocket:
+        print("Connected to WebSocket server at /video.")
+        last_saved_time = datetime.now()
+
+        async for message in websocket:
+            # Check if the message is binary (image frame)
+            if isinstance(message, bytes):
+                current_time = datetime.now()
+                # Save the frame only if 1 second has passed
+                if (current_time - last_saved_time).total_seconds() >= 1:
+                    timestamp = current_time.strftime("%Y%m%d_%H%M%S")
+                    filename = os.path.join(output_dir, f"frame_{timestamp}.jpg")
+                    with open(filename, "wb") as file:
+                        file.write(message)
+                    print(f"Saved frame to {filename}")
+                    last_saved_time = current_time
             else:
-                print("Failed to capture frame")
-                break
-                
-    except KeyboardInterrupt:
-        print("\nCapture stopped by user")
-    finally:
-        cap.release()
-        print("Camera released")
+                print("Received non-binary message:", message)
 
+# Run the WebSocket client
 if __name__ == "__main__":
-    # Get camera ID from user
-    device_id = 0
-    
-    # Get capture interval
-    interval = 2
-    
-    # Start capturing
-    capture_images(device_id=device_id, interval=interval)
+    try:
+        asyncio.run(save_camera_frames())
+    except KeyboardInterrupt:
+        print("WebSocket client stopped.")

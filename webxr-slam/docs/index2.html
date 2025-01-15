@@ -11,14 +11,13 @@
   <script src='d3.min.js'></script>
   <script src='jquery-3.5.1.min.js'></script>
   <script src='three.min.js'></script>
-
   <style>
     body, html {
       -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
       tap-highlight-color: rgba(0, 0, 0, 0);
       background-color: black;
     }
-
+    
     button {
       font-size: 30px;
       padding: 10px;
@@ -31,6 +30,7 @@
 </head>
 
 <body
+  
   style="margin:0; margin-top: -20px;padding:0; padding-top:20px; background: black; font-family:Arial, Helvetica, sans-serif; overflow:hidden">
   <div id="overlay" style="background-color: black;color:white; text-shadow: 0px 0px 2px black; height: 100vh">
     <header style="background-color: black;margin-top:-30px;padding-top:50px">
@@ -59,58 +59,71 @@
     import * as THREE from "https://cdn.jsdelivr.net/gh/mesquite-mocap/mesquite.cc@latest/build-static/three.module.js";
     import Stats from "https://cdn.jsdelivr.net/gh/mesquite-mocap/mesquite.cc@latest/build-static/stats.module.js";
     import { OrbitControls } from "https://cdn.jsdelivr.net/gh/mesquite-mocap/mesquite.cc@latest/build-static/OrbitControls.js";
+    
+    let ws;
 
-    // Add this to initialize WebSocket and handle incoming frames
-  let ws;
-  let canvas, ctx;
+    async function startCamera() {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('getUserMedia API is not supported in this browser. Please use a modern browser like Chrome, Firefox, or Edge.');
+        }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    // Create and add the canvas to the DOM
-    canvas = document.createElement('canvas');
-    ctx = canvas.getContext('2d');
-    document.body.appendChild(canvas);
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" }, // Access the front camera
+          // audio: false
+        });
+        const [videoTrack] = stream.getVideoTracks();
+        // WebSocket setup
+        ws = new WebSocket('wss://192.168.0.214:8888/video');
+        ws.onopen = () => console.log('WebSocket connection established');
+        ws.onerror = (err) => console.error('WebSocket error:', err);
 
-    initializeWebSocket();
-  });
+        // Capture frames from the video stream
+        // const videoTrack = stream.getVideoTracks()[0];
+        // const imageCapture = new ImageCapture(videoTrack);
+        const trackProcessor = new MediaStreamTrackProcessor({ track: videoTrack });
+        const reader = trackProcessor.readable.getReader();
 
-  function initializeWebSocket() {
-    ws = new WebSocket('wss://192.168.0.214:8888/video');
+        async function sendFrames() {
+          while (true) {
+            const { done, value: videoFrame } = await reader.read();
+            if (done) {
+              break;
+            }
 
-    ws.onopen = () => {
-      console.log('WebSocket connected to server.');
+            if (ws.readyState === WebSocket.OPEN) {
+              const bitmap = await createImageBitmap(videoFrame);
+              videoFrame.close(); // Clean up the frame
+
+              const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(bitmap, 0, 0);
+
+              const blob = await canvas.convertToBlob({ type: 'image/jpeg' });
+              ws.send(blob);
+              console.log('Sent a video frame to the server.');
+            }
+          }
+        }
+
+        sendFrames().catch(console.error);
+      } catch (err) {
+        console.error('Error accessing camera: ', err);
+        alert(
+          'Could not access the camera. ' +
+            err.message +
+            '\nPlease ensure your browser allows camera access and refresh the page.'
+        );
+      }
     };
 
-    ws.onmessage = (event) => {
-      // Handle incoming frame
-      const blob = new Blob([event.data], { type: 'image/jpeg' });
-      const url = URL.createObjectURL(blob);
-
-      const img = new Image();
-      img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-        URL.revokeObjectURL(url); // Cleanup after rendering
-      };
-      img.src = url;
-    };
-
-    ws.onerror = (err) => {
-      console.error('WebSocket error:', err);
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket closed. Attempting to reconnect...');
-      setTimeout(initializeWebSocket, 5000); // Reconnect after 5 seconds
-    };
-  }
+    window.addEventListener('load', startCamera);
 
 
     // XR globals.
     let xrButton = document.getElementById('xr-button');
     let xrSession = null;
     let xrRefSpace = null;
-    let xrWebGLBinding = null;
 
     // WebGL scene globals.
     let gl = null;
@@ -229,11 +242,9 @@
 
       renderer.render(scene, camera);
     }
-
     function onButtonClicked() {
       if (!xrSession) {
         navigator.xr.requestSession('immersive-ar', {
-          requiredFeatures: ["camera-access"],
           optionalFeatures: ['dom-overlay'],
           domOverlay: { root: document.getElementById('overlay') }
         }).then(onSessionStarted, onRequestSessionError);
@@ -259,8 +270,6 @@
       gl = canvas.getContext('webgl', {
         xrCompatible: true
       });
-      xrWebGLBinding = new XRWebGLBinding(session, gl);
-
       session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
       session.requestReferenceSpace('local').then((refSpace) => {
         xrRefSpace = refSpace;
@@ -281,7 +290,6 @@
       xrSession = null;
       xrButton.innerHTML = 'Start';
       gl = null;
-      xrWebGLBinding = null;
       window.location.reload();
     }
 
@@ -291,117 +299,35 @@
       let session = frame.session;
       session.requestAnimationFrame(onXRFrame);
 
-      // Manage framebuffer
-      gl.bindFramebuffer(gl.FRAMEBUFFER, session.renderState.baseLayer.framebuffer);
+      if (framen < 4) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, session.renderState.baseLayer.framebuffer);
 
-      // Update framebuffer size
-      const width = session.renderState.baseLayer.framebufferWidth;
-      const height = session.renderState.baseLayer.framebufferHeight;
+        // Update the clear color so that we can observe the color in the
+        // headset changing over time. Use a scissor rectangle to keep the AR
+        // scene visible.
+        const width = session.renderState.baseLayer.framebufferWidth;
+        const height = session.renderState.baseLayer.framebufferHeight;
+        gl.enable(gl.SCISSOR_TEST);
+        gl.scissor(0, 0, width, height);
 
-      // Clear the framebuffer
-      gl.enable(gl.SCISSOR_TEST);
-      gl.scissor(0, 0, width, height);
-      gl.clearColor(0, 0, 0, 1);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        //  black bg
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-      // Get the viewer pose
-      const pose = frame.getViewerPose(xrRefSpace);
+      }
+
+
+      let pose = frame.getViewerPose(xrRefSpace);
       if (pose) {
-        for (const view of pose.views) {
-          const camera = view.camera;
+        const p = pose.transform.position;
+        const q = pose.transform.orientation;
+        updatePose(p, q);
 
-          // Debugging logs
-          // console.log('Camera:', camera);
-
-          if (camera) {
-            const cameraTexture = xrWebGLBinding.getCameraImage(camera);
-
-            // Debugging logs
-            // console.log('Camera Texture:', cameraTexture);
-
-            if (cameraTexture) {
-              gl.bindTexture(gl.TEXTURE_2D, cameraTexture);
-              gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // Clear before drawing
-              saveFrameToWebSocket(gl, cameraTexture, camera.width, camera.height);
-            } else {
-              console.error('Camera Texture is null or unavailable');
-            }
-
-            // Process position and orientation
-            const p = pose.transform.position;
-            const q = pose.transform.orientation;
-            updatePose(p, q);
-          }
-        }
       } else {
-        console.error('No pose available');
         document.getElementById('pose').innerHTML = "<p style='color:red'>No pose</p><br><br>";
       }
     }
-
-    function saveFrameToWebSocket(gl, texture, width, height) {
-      // Create a WebSocket connection if not already connected
-      if (!ws || ws.readyState !== WebSocket.OPEN) {
-        console.error('WebSocket is not open. Frame not sent.');
-        return;
-    }
-
-      // Create a framebuffer to attach the texture
-      const framebuffer = gl.createFramebuffer();
-      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
-
-      // Read pixels into an array
-      const pixels = new Uint8Array(width * height * 4); // RGBA
-      gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-
-      // Create a canvas to convert the pixel data into an image
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-
-      // Flip the image vertically
-      const imageData = ctx.createImageData(width, height);
-      for (let row = 0; row < height; row++) {
-          const srcRow = height - row - 1; // Flip vertically
-          for (let col = 0; col < width * 4; col++) {
-              imageData.data[row * width * 4 + col] = pixels[srcRow * width * 4 + col];
-          }
-      }
-      ctx.putImageData(imageData, 0, 0);
-
-      // Convert to blob and send over WebSocket
-      canvas.toBlob(
-          (blob) => {
-              if (!blob) {
-                  console.error('Failed to create blob from canvas.');
-                  return;
-              }
-
-              const reader = new FileReader();
-              reader.onload = () => {
-                  if (ws.readyState === WebSocket.OPEN) {
-                      ws.send(reader.result); // Send the ArrayBuffer of the image
-                      console.log('Frame sent over WebSocket');
-                  } else {
-                      console.error('WebSocket is not open. Frame not sent.');
-                  }
-              };
-              reader.onerror = (err) => {
-                  console.error('Error reading blob:', err);
-              };
-              reader.readAsArrayBuffer(blob);
-          },
-          'image/jpeg',
-          0.8 // Adjust quality (optional)
-      );
-
-      // Cleanup
-      gl.deleteFramebuffer(framebuffer);
-      console.log('Framebuffer cleaned up');
-    }
-
+    
 
     var quat = new THREE.Quaternion(0, 0, 0, 1);
     var pos = new THREE.Vector3(0, 0, 0);

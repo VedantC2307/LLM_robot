@@ -11,12 +11,13 @@
         var finalTranscripts = "";
         var myTimer = undefined;
 
-        let websocket = new WebSocket('wss://192.168.0.133:4000/transcription');
+        let websocket = new WebSocket('wss://192.168.0.214:4000/transcription');
 
         recognizer.onresult = function(event){
             for(var i = event.resultIndex; i < event.results.length; i++){
                 var transcript = event.results[i][0].transcript;
                 transcript.replace("\n", "<br>");
+                // console.log(transcript)
                 if(event.results[i].isFinal && (transcript.toLowerCase().includes(keyword) || finalTranscripts.toLowerCase().includes(keyword))){
                     finalTranscripts += transcript;
                     if (myTimer) {

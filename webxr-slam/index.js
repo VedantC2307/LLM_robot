@@ -4,7 +4,8 @@ var port = parseInt(process.argv[2] || 8888);
 
 var qrcode = require('qrcode-terminal');
 const chalk = require('chalk')
-
+const url = require('url');
+const WebSocket = require('ws');
 const https = require("https");
 const fs = require("fs");
 const path = require('path');
@@ -15,36 +16,33 @@ const options = {
     cert: fs.readFileSync(path.join(__dirname, '../cert.pem')), 
 };
 
-function sendJsonToReceiver(jsonData) {
-    const postData = JSON.stringify(jsonData);
+// WebSocket server for receiving and broadcasting camera data
+const wss = new WebSocket.Server({ noServer: true });
+// Store connected clients
+const clients = new Set();
 
-    const options = {
-        hostname: 'localhost', // Replace with the IP or hostname of the receiver server
-        port: 4000,            // Port of the receiver server
-        path: '/webxlr-json', // Endpoint on the receiver server
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': postData.length,
-        },
-        rejectUnauthorized: false, // Allow self-signed certificates
-    };
+wss.on('connection', (ws) => {
+    console.log('WebSocket connection established');
+    clients.add(ws);
 
-    const req = https.request(options, (res) => {
-        console.log(`Status Code: ${res.statusCode}`);
-        res.on('data', (d) => {
-            process.stdout.write(d);
-        });
+    ws.on('message', (message) => {
+        // Broadcast the message to all connected clients
+        for (const client of clients) {
+            if (client !== ws && client.readyState === WebSocket.OPEN) {
+                client.send(message);
+            }
+        }
     });
 
-    req.on('error', (e) => {
-        console.error(`Problem with request: ${e.message}`);
+    ws.on('close', () => {
+        console.log('WebSocket connection closed');
+        clients.delete(ws);
     });
 
-    // Write data to request body
-    req.write(postData);
-    req.end();
-}
+    ws.on('error', (err) => {
+        console.error('WebSocket error:', err.message);
+    });
+});
 
 function getIPAddress() {
     var interfaces = require('os').networkInterfaces();
@@ -64,18 +62,12 @@ var ipAddr = getIPAddress();
 
 const express = require('express');
 const app = express();
-// const server = require('http').Server(app);
 const server = https.createServer(options, app);
-const url = require('url');
-
-const WebSocket = require('ws');
 
 const wss1 = new WebSocket.Server({ noServer: true });
 const wss2 = new WebSocket.Server({ noServer: true });
+const videoWS = new WebSocket.Server({ noServer: true }); // For `/video` path
 
-const wssVideo = new WebSocket.Server({ noServer: true }); //1
-
-// const intWS = new WebSocket('wss://localhost:' + port + '/xr-slam-server');
 
 const intWS = new WebSocket(`wss://localhost:${port}/xr-slam-server`, {
     rejectUnauthorized: false, // Accept self-signed certificates
@@ -106,24 +98,6 @@ wss2.on('connection', function connection(ws) {
     });
 });
 
-// wssVideo => the new video-stream websocket
-wssVideo.on('connection', function (ws) {
-    console.log('New WebSocket connection on /video-stream');
-    ws.on('message', function (message) {
-        // Typically your client is sending JSON with { dataUrl: '...' }
-        // For a quick test, just log it:
-        // console.log('Video frame received from client:', message.toString().slice(0,100), '...');
-
-        // If you want to broadcast the frames to all connected video clients:
-        wssVideo.clients.forEach(function each(client) {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
-                client.send(message);
-            }
-        });
-    });
-});
-
-
 server.on('upgrade', function upgrade(request, socket, head) {
     const pathname = url.parse(request.url).pathname;
 
@@ -135,10 +109,9 @@ server.on('upgrade', function upgrade(request, socket, head) {
         wss2.handleUpgrade(request, socket, head, function done(ws) {
             wss2.emit('connection', ws, request);
         });
-    } else if (pathname === '/video-stream') {
-        // ADD THIS BLOCK to handle the camera’s video-stream route
-        wssVideo.handleUpgrade(request, socket, head, function done(ws) {
-            wssVideo.emit('connection', ws, request);
+    } else if (pathname === '/video') {
+        wss.handleUpgrade(request, socket, head, (ws) => {
+            wss.emit('connection', ws, request);
         });
     } else {
         socket.destroy();
@@ -146,7 +119,7 @@ server.on('upgrade', function upgrade(request, socket, head) {
 });
 
 app.get("/", function (req, res) {
-    res.sendFile(__dirname + '/docs/index1.html');
+    res.sendFile(__dirname + '/docs/index2.html');
 });
 
 app.get("/test", function (req, res) {
@@ -163,16 +136,13 @@ app.get("/data", function (req, res) {
     res.writeHead(200, { 'Content-Type': 'text/plain' }); // send response header
     console.log(req.query);
     console.log(chalk.black.bgGreen(`Test Page:\n http://${ipAddr}:${port}/test/`));
-    console.log(chalk.white(`WebSocket Client: wss://${ipAddr}:${port}/xr-slam-client\n`));
-
-    sendJsonToReceiver(req.query);
-
+    console.log(chalk.white(`WebSocket Client: ws://${ipAddr}:${port}/xr-slam-client\n`));
     res.end(''); // send response body
     if(intWS.readyState === WebSocket.OPEN) {
         intWS.send(JSON.stringify(req.query));
     }
     else {
-        intWS = new WebSocket('wss://localhost:' + port + '/xr-slam-server');
+        intWS = new WebSocket('ws://localhost:' + port + '/xr-slam-server');
         intWS.send(JSON.stringify(req.query));
     }
 
@@ -182,18 +152,17 @@ app.get("/sendData", function (req, res) {
     res.end('ok'); // send response body
 });
 
-
 app.use(express.static(__dirname + '/docs'));
 
-var x = `https://${ipAddr}:${port}/test`;
+var x = `http://${ipAddr}:${port}/test`;
 
 server.listen(port, () => {
     qrcode.generate(`http://${ipAddr}:${port}`, { small: true }, function (qrcode) {
         console.log(qrcode);
         console.log(chalk.blue.bgWhite(`Connect mobile browser to:`));
-        console.log(chalk.blue(`https://${ipAddr}:${port}/\n`));
-        console.log(chalk.black.bgGreen(`Test Page:\n https://${ipAddr}:${port}/test/`));
-        console.log(chalk.white(`WebSocket Client: wss://${ipAddr}:${port}/xr-slam-client\n`));
+        console.log(chalk.blue(`http://${ipAddr}:${port}/\n`));
+        console.log(chalk.black.bgGreen(`Test Page:\n http://${ipAddr}:${port}/test/`));
+        console.log(chalk.white(`WebSocket Client: ws://${ipAddr}:${port}/xr-slam-client\n`));
     });
 });
 

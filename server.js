@@ -30,7 +30,7 @@ app.use(errorHandler());
 
 // Define a new route to handle JSON data from `index.js`
 app.post('/webxlr-json', (req, res) => {
-    console.log("Received JSON data from index.js:", req.body);
+    // console.log("Received JSON data from index.js:", req.body);
 
     // Broadcast received data to all WebSocket clients
     broadcastToWebSocketClients(req.body);
@@ -88,6 +88,7 @@ async function handleWSMessage(ws, message, path) {
         path,
         "message": parsed_data
     };
+    console.log('Data:', parsed_data);
     wss.clients.forEach((client) => {
         if (client !== ws && client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify(msg));
